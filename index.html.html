@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiteShare - Community Food Sharing</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            height: 600px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .food-listings {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .food-listings h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .food-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #28a745;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .food-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .food-item h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .food-item p {
+            color: #666;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .food-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
+
+        .distance {
+            background: #e9ecef;
+            padding: 0.25rem 0.5rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #495057;
+        }
+
+        .contact-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .contact-btn:hover {
+            background: #218838;
+        }
+
+        .add-food-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .add-food-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .feedback-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feedback-section h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .star {
+            font-size: 1.5rem;
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .star.active {
+            color: #ffc107;
+        }
+
+        .comment {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #007bff;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .comment-date {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .edit-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .edit-btn, .delete-btn {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .edit-btn {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .feature-request {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid #2196f3;
+        }
+
+        .feature-request h3 {
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+        }
+
+        .idea-vote {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .vote-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .vote-btn:hover {
+            background: #e9ecef;
+        }
+
+        .vote-btn.voted {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            border-bottom-color: #007bff;
+            color: #007bff;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            padding: 0.5rem;
+            z-index: 1000;
+        }
+
+        .mobile-nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem;
+            border: none;
+            background: none;
+            color: #666;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .mobile-nav-btn.active {
+            color: #007bff;
+        }
+
+        .mobile-nav-btn i {
+            font-size: 1.2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Mobile Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .map-container {
+                height: 400px;
+                margin-bottom: 1rem;
+            }
+
+            .food-listings {
+                max-height: 400px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+
+            .add-food-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+                bottom: 1rem;
+                right: 1rem;
+            }
+
+            .food-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
+            }
+
+            .food-meta > div {
+                justify-content: center;
+            }
+
+            .contact-btn, .edit-btn, .delete-btn {
+                flex: 1;
+                padding: 0.75rem;
+                font-size: 0.9rem;
+                min-height: 44px;
+            }
+
+            .modal-content {
+                width: 95%;
+                padding: 1.5rem;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                text-align: center;
+                border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+
+            .tab.active {
+                border-bottom-color: transparent;
+                border-left-color: #007bff;
+            }
+
+            .rating-stars {
+                justify-content: center;
+            }
+
+            .star {
+                font-size: 2rem;
+            }
+
+            .idea-vote {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .vote-btn {
+                text-align: center;
+            }
+
+            .mobile-nav {
+                display: flex;
+                justify-content: space-around;
+            }
+
+            body {
+                padding-bottom: 80px;
+            }
+
+            .food-item {
+                padding: 1.25rem;
+                margin-bottom: 1.25rem;
+            }
+
+            .btn, .contact-btn, .edit-btn, .delete-btn {
+                min-height: 44px;
+                touch-action: manipulation;
+            }
+
+            .form-group input, .form-group textarea, .form-group select {
+                min-height: 44px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-utensils"></i> BiteShare München</h1>
+        <p>Connect with neighbors in Munich to share food and reduce waste</p>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalFood">12</div>
+                <div class="stat-label">Food Items Available</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeUsers">47</div>
+                <div class="stat-label">Active Community Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="foodSaved">156</div>
+                <div class="stat-label">Pounds of Food Saved</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            
+            <div class="food-listings">
+                <h2>Available Food</h2>
+                <div id="foodItems">
+                    <!-- Food items will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="add-food-btn" onclick="openModal()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+        <button class="mobile-nav-btn active" onclick="showMobileSection('map')">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Map</span>
+        </button>
+        <button class="mobile-nav-btn" onclick="showMobileSection('food')">
+            <i class="fas fa-utensils"></i>
+            <span>Food</span>
+        </button>
+        <button class="mobile-nav-btn" onclick="showMobileSection('feedback')">
+            <i class="fas fa-comments"></i>
+            <span>Feedback</span>
+        </button>
+    </div>
+
+    <!-- Add Food Modal -->
+    <div id="addFoodModal" class="modal">
+        <div class="modal-content">
+            <h2>Share Your Food</h2>
+            <form id="addFoodForm">
+                <div class="form-group">
+                    <label for="foodName">Food Item</label>
+                    <input type="text" id="foodName" required placeholder="e.g., Fresh tomatoes, Bread, etc.">
+                </div>
+                <div class="form-group">
+                    <label for="foodType">Food Type</label>
+                    <select id="foodType" required>
+                        <option value="">Select food type</option>
+                        <option value="vegetables">Vegetables</option>
+                        <option value="fruits">Fruits</option>
+                        <option value="bakery">Bread & Pastries</option>
+                        <option value="herbs">Herbs & Spices</option>
+                        <option value="pantry">Pantry Items</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="foodDescription">Description</label>
+                    <textarea id="foodDescription" rows="3" placeholder="Describe the food item, quantity, condition..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="expiryDate">Expiry Date</label>
+                    <input type="date" id="expiryDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="pickupTime">Preferred Pickup Time</label>
+                    <select id="pickupTime" required>
+                        <option value="">Select time</option>
+                        <option value="morning">Morning (8AM-12PM)</option>
+                        <option value="afternoon">Afternoon (12PM-5PM)</option>
+                        <option value="evening">Evening (5PM-9PM)</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Share Food</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="feedback-section">
+            <h2><i class="fas fa-comments"></i> Help Us Improve BiteShare</h2>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('rating')">Rate Experience</button>
+                <button class="tab" onclick="showTab('comments')">Comments & Ideas</button>
+                <button class="tab" onclick="showTab('features')">Feature Requests</button>
+            </div>
+
+            <div id="rating" class="tab-content active">
+                <h3>How would you rate your experience?</h3>
+                <div class="rating-stars">
+                    <span class="star" onclick="rateExperience(1)">★</span>
+                    <span class="star" onclick="rateExperience(2)">★</span>
+                    <span class="star" onclick="rateExperience(3)">★</span>
+                    <span class="star" onclick="rateExperience(4)">★</span>
+                    <span class="star" onclick="rateExperience(5)">★</span>
+                </div>
+                <p id="ratingText">Click the stars to rate your experience</p>
+                
+                <div class="form-group">
+                    <label for="feedbackText">What would you like to see improved?</label>
+                    <textarea id="feedbackText" rows="3" placeholder="Share your thoughts, suggestions, or concerns..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="submitFeedback()">Submit Feedback</button>
+            </div>
+
+            <div id="comments" class="tab-content">
+                <h3>Community Comments & Ideas</h3>
+                <div id="commentsList">
+                    <div class="comment">
+                        <div class="comment-header">
+                            <span class="comment-author">Maria S.</span>
+                            <span class="comment-date">2 hours ago</span>
+                        </div>
+                        <p>Love the concept! Would be great to have notifications when new food is available nearby.</p>
+                        <div class="edit-controls">
+                            <button class="edit-btn" onclick="editComment(this)">Edit</button>
+                            <button class="delete-btn" onclick="deleteComment(this)">Delete</button>
+                        </div>
+                    </div>
+                    <div class="comment">
+                        <div class="comment-header">
+                            <span class="comment-author">Thomas K.</span>
+                            <span class="comment-date">1 day ago</span>
+                        </div>
+                        <p>Maybe add a feature to schedule pickup times? That would make coordination easier.</p>
+                        <div class="edit-controls">
+                            <button class="edit-btn" onclick="editComment(this)">Edit</button>
+                            <button class="delete-btn" onclick="deleteComment(this)">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="newComment">Add your comment:</label>
+                    <textarea id="newComment" rows="3" placeholder="Share your thoughts or ideas..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="addComment()">Add Comment</button>
+            </div>
+
+            <div id="features" class="tab-content">
+                <h3>Vote for New Features</h3>
+                
+                <div class="feature-request">
+                    <h3><i class="fas fa-bell"></i> Push Notifications</h3>
+                    <p>Get notified when new food items are available in your area</p>
+                    <div class="idea-vote">
+                        <button class="vote-btn" onclick="voteFeature(this, 'notifications')">
+                            <i class="fas fa-thumbs-up"></i> Vote (23)
+                        </button>
+                        <span>High Priority</span>
+                    </div>
+                </div>
+
+                <div class="feature-request">
+                    <h3><i class="fas fa-calendar-alt"></i> Pickup Scheduling</h3>
+                    <p>Schedule specific pickup times to coordinate with food donors</p>
+                    <div class="idea-vote">
+                        <button class="vote-btn" onclick="voteFeature(this, 'scheduling')">
+                            <i class="fas fa-thumbs-up"></i> Vote (18)
+                        </button>
+                        <span>Medium Priority</span>
+                    </div>
+                </div>
+
+                <div class="feature-request">
+                    <h3><i class="fas fa-star"></i> User Ratings</h3>
+                    <p>Rate and review food donors to build trust in the community</p>
+                    <div class="idea-vote">
+                        <button class="vote-btn" onclick="voteFeature(this, 'ratings')">
+                            <i class="fas fa-thumbs-up"></i> Vote (15)
+                        </button>
+                        <span>Medium Priority</span>
+                    </div>
+                </div>
+
+                <div class="feature-request">
+                    <h3><i class="fas fa-language"></i> Multi-language Support</h3>
+                    <p>Support for German, English, and other languages</p>
+                    <div class="idea-vote">
+                        <button class="vote-btn" onclick="voteFeature(this, 'language')">
+                            <i class="fas fa-thumbs-up"></i> Vote (12)
+                        </button>
+                        <span>Low Priority</span>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 2rem;">
+                    <label for="newFeature">Suggest a new feature:</label>
+                    <textarea id="newFeature" rows="3" placeholder="Describe your feature idea..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="suggestFeature()">Suggest Feature</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Sample food data
+        let foodItems = [
+            {
+                id: 1,
+                name: "Fresh Tomatoes",
+                description: "Organic tomatoes from my garden, about 2 pounds",
+                location: [48.1351, 11.5820], // Munich coordinates
+                distance: "0.3 km",
+                expiry: "2024-01-25",
+                pickupTime: "afternoon",
+                contact: "Sarah M.",
+                type: "vegetables"
+            },
+            {
+                id: 2,
+                name: "Bread & Pastries",
+                description: "Day-old bread and croissants from local bakery",
+                location: [48.1374, 11.5755], // Marienplatz area
+                distance: "0.8 km",
+                expiry: "2024-01-24",
+                pickupTime: "morning",
+                contact: "Mike R.",
+                type: "bakery"
+            },
+            {
+                id: 3,
+                name: "Canned Goods",
+                description: "Various canned vegetables and beans",
+                location: [48.1326, 11.5880], // Near English Garden
+                distance: "1.2 km",
+                expiry: "2024-12-31",
+                pickupTime: "evening",
+                contact: "Lisa K.",
+                type: "pantry"
+            },
+            {
+                id: 4,
+                name: "Fresh Herbs",
+                description: "Basil, mint, and parsley from indoor garden",
+                location: [48.1396, 11.5734], // Schwabing area
+                distance: "0.5 km",
+                expiry: "2024-01-26",
+                pickupTime: "afternoon",
+                contact: "David W.",
+                type: "herbs"
+            },
+            {
+                id: 5,
+                name: "Apples & Pears",
+                description: "Fresh fruits from local orchard, about 3 kg",
+                location: [48.1333, 11.5833], // Near Viktualienmarkt
+                distance: "0.7 km",
+                expiry: "2024-01-28",
+                pickupTime: "morning",
+                contact: "Anna B.",
+                type: "fruits"
+            }
+        ];
+
+        // Create custom food icons
+        const foodIcons = {
+            vegetables: L.divIcon({
+                html: '<i class="fas fa-carrot" style="color: #ff6b35; font-size: 20px;"></i>',
+                className: 'custom-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            }),
+            bakery: L.divIcon({
+                html: '<i class="fas fa-bread-slice" style="color: #d4a574; font-size: 20px;"></i>',
+                className: 'custom-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            }),
+            pantry: L.divIcon({
+                html: '<i class="fas fa-box" style="color: #8b4513; font-size: 20px;"></i>',
+                className: 'custom-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            }),
+            herbs: L.divIcon({
+                html: '<i class="fas fa-seedling" style="color: #228b22; font-size: 20px;"></i>',
+                className: 'custom-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            }),
+            fruits: L.divIcon({
+                html: '<i class="fas fa-apple-alt" style="color: #ff6347; font-size: 20px;"></i>',
+                className: 'custom-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            })
+        };
+
+        // Initialize map centered on Munich
+        const map = L.map('map').setView([48.1351, 11.5820], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add markers for each food item with custom icons
+        foodItems.forEach(item => {
+            const icon = foodIcons[item.type] || foodIcons.vegetables;
+            const marker = L.marker(item.location, { icon: icon }).addTo(map);
+            marker.bindPopup(`
+                <div style="text-align: center;">
+                    <strong>${item.name}</strong><br>
+                    <i class="fas fa-${getFoodIcon(item.type)}" style="color: #28a745; margin: 5px 0;"></i><br>
+                    ${item.description}<br>
+                    <small><i class="fas fa-user"></i> ${item.contact}</small><br>
+                    <small><i class="fas fa-calendar"></i> Expires: ${item.expiry}</small>
+                    <br><br>
+                    <button onclick="editFoodItem(${item.id})" style="background: #ffc107; border: none; padding: 5px 10px; border-radius: 3px; margin-right: 5px;">Edit</button>
+                    <button onclick="deleteFoodItem(${item.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px;">Delete</button>
+                </div>
+            `);
+        });
+
+        // Helper function to get food icon
+        function getFoodIcon(type) {
+            const icons = {
+                vegetables: 'carrot',
+                bakery: 'bread-slice',
+                pantry: 'box',
+                herbs: 'seedling',
+                fruits: 'apple-alt'
+            };
+            return icons[type] || 'utensils';
+        }
+
+        // Render food items
+        function renderFoodItems() {
+            const container = document.getElementById('foodItems');
+            container.innerHTML = '';
+            
+            foodItems.forEach(item => {
+                const foodElement = document.createElement('div');
+                foodElement.className = 'food-item';
+                foodElement.innerHTML = `
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                    <p><i class="fas fa-calendar"></i> Expires: ${item.expiry}</p>
+                    <p><i class="fas fa-clock"></i> Pickup: ${item.pickupTime}</p>
+                    <div class="food-meta">
+                        <span class="distance">${item.distance}</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="contact-btn" onclick="contactUser('${item.contact}')">
+                                <i class="fas fa-envelope"></i> Contact
+                            </button>
+                            <button class="edit-btn" onclick="editFoodItem(${item.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn" onclick="deleteFoodItem(${item.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(foodElement);
+            });
+        }
+
+        // Modal functions
+        function openModal() {
+            document.getElementById('addFoodModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('addFoodModal').style.display = 'none';
+        }
+
+        // Contact user function
+        function contactUser(contactName) {
+            alert(`Contacting ${contactName}...\n\nThis would open a chat or contact form in a real app.`);
+        }
+
+        // Add food form submission
+        document.getElementById('addFoodForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newFood = {
+                id: foodItems.length + 1,
+                name: document.getElementById('foodName').value,
+                description: document.getElementById('foodDescription').value,
+                location: [48.1351 + (Math.random() - 0.5) * 0.02, 11.5820 + (Math.random() - 0.5) * 0.02],
+                distance: (Math.random() * 2).toFixed(1) + " km",
+                expiry: document.getElementById('expiryDate').value,
+                pickupTime: document.getElementById('pickupTime').value,
+                contact: "You",
+                type: document.getElementById('foodType').value
+            };
+
+            foodItems.unshift(newFood);
+            
+            // Add marker to map
+            const icon = foodIcons[newFood.type] || foodIcons.vegetables;
+            const marker = L.marker(newFood.location, { icon: icon }).addTo(map);
+            marker.bindPopup(`
+                <div style="text-align: center;">
+                    <strong>${newFood.name}</strong><br>
+                    <i class="fas fa-${getFoodIcon(newFood.type)}" style="color: #28a745; margin: 5px 0;"></i><br>
+                    ${newFood.description}<br>
+                    <small><i class="fas fa-user"></i> ${newFood.contact}</small><br>
+                    <small><i class="fas fa-calendar"></i> Expires: ${newFood.expiry}</small>
+                    <br><br>
+                    <button onclick="editFoodItem(${newFood.id})" style="background: #ffc107; border: none; padding: 5px 10px; border-radius: 3px; margin-right: 5px;">Edit</button>
+                    <button onclick="deleteFoodItem(${newFood.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px;">Delete</button>
+                </div>
+            `);
+
+            // Update stats
+            document.getElementById('totalFood').textContent = foodItems.length;
+            document.getElementById('activeUsers').textContent = parseInt(document.getElementById('activeUsers').textContent) + 1;
+            document.getElementById('foodSaved').textContent = parseInt(document.getElementById('foodSaved').textContent) + Math.floor(Math.random() * 10) + 5;
+
+            renderFoodItems();
+            closeModal();
+            this.reset();
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addFoodModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Initialize the page
+        renderFoodItems();
+
+        // Feedback and interaction functions
+        let currentRating = 0;
+        let votedFeatures = new Set();
+
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        function rateExperience(rating) {
+            currentRating = rating;
+            const stars = document.querySelectorAll('.star');
+            const ratingTexts = [
+                'Poor - We need to improve significantly',
+                'Fair - Room for improvement',
+                'Good - Decent experience',
+                'Very Good - Almost there!',
+                'Excellent - Perfect experience!'
+            ];
+            
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            document.getElementById('ratingText').textContent = ratingTexts[rating - 1];
+        }
+
+        function submitFeedback() {
+            const feedback = document.getElementById('feedbackText').value;
+            if (currentRating === 0) {
+                alert('Please rate your experience first!');
+                return;
+            }
+            
+            alert(`Thank you for your feedback!\n\nRating: ${currentRating}/5 stars\nFeedback: ${feedback}\n\nThis feedback will help us improve BiteShare!`);
+            
+            // Reset form
+            currentRating = 0;
+            document.querySelectorAll('.star').forEach(star => star.classList.remove('active'));
+            document.getElementById('ratingText').textContent = 'Click the stars to rate your experience';
+            document.getElementById('feedbackText').value = '';
+        }
+
+        function addComment() {
+            const commentText = document.getElementById('newComment').value.trim();
+            if (!commentText) {
+                alert('Please enter a comment!');
+                return;
+            }
+            
+            const commentsList = document.getElementById('commentsList');
+            const newComment = document.createElement('div');
+            newComment.className = 'comment';
+            newComment.innerHTML = `
+                <div class="comment-header">
+                    <span class="comment-author">You</span>
+                    <span class="comment-date">Just now</span>
+                </div>
+                <p>${commentText}</p>
+                <div class="edit-controls">
+                    <button class="edit-btn" onclick="editComment(this)">Edit</button>
+                    <button class="delete-btn" onclick="deleteComment(this)">Delete</button>
+                </div>
+            `;
+            
+            commentsList.insertBefore(newComment, commentsList.firstChild);
+            document.getElementById('newComment').value = '';
+            
+            alert('Comment added successfully!');
+        }
+
+        function editComment(button) {
+            const comment = button.closest('.comment');
+            const commentText = comment.querySelector('p').textContent;
+            const newText = prompt('Edit your comment:', commentText);
+            
+            if (newText && newText.trim()) {
+                comment.querySelector('p').textContent = newText.trim();
+                comment.querySelector('.comment-date').textContent = 'Just now (edited)';
+            }
+        }
+
+        function deleteComment(button) {
+            if (confirm('Are you sure you want to delete this comment?')) {
+                button.closest('.comment').remove();
+            }
+        }
+
+        function voteFeature(button, feature) {
+            if (votedFeatures.has(feature)) {
+                // Remove vote
+                votedFeatures.delete(feature);
+                button.classList.remove('voted');
+                const currentVotes = parseInt(button.textContent.match(/\d+/)[0]) - 1;
+                button.innerHTML = `<i class="fas fa-thumbs-up"></i> Vote (${currentVotes})`;
+            } else {
+                // Add vote
+                votedFeatures.add(feature);
+                button.classList.add('voted');
+                const currentVotes = parseInt(button.textContent.match(/\d+/)[0]) + 1;
+                button.innerHTML = `<i class="fas fa-thumbs-up"></i> Vote (${currentVotes})`;
+            }
+        }
+
+        function suggestFeature() {
+            const featureText = document.getElementById('newFeature').value.trim();
+            if (!featureText) {
+                alert('Please describe your feature idea!');
+                return;
+            }
+            
+            alert(`Thank you for your feature suggestion!\n\n"${featureText}"\n\nWe'll review this idea and consider it for future updates.`);
+            document.getElementById('newFeature').value = '';
+        }
+
+        // Add edit/delete functionality to food items
+        function editFoodItem(id) {
+            const item = foodItems.find(food => food.id === id);
+            if (!item) return;
+            
+            const newName = prompt('Edit food name:', item.name);
+            if (newName && newName.trim()) {
+                item.name = newName.trim();
+                renderFoodItems();
+                updateMapMarkers();
+            }
+        }
+
+        function deleteFoodItem(id) {
+            if (confirm('Are you sure you want to delete this food item?')) {
+                foodItems = foodItems.filter(food => food.id !== id);
+                renderFoodItems();
+                updateMapMarkers();
+                
+                // Update stats
+                document.getElementById('totalFood').textContent = foodItems.length;
+            }
+        }
+
+        function updateMapMarkers() {
+            // Clear existing markers
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Add markers for each food item with custom icons
+            foodItems.forEach(item => {
+                const icon = foodIcons[item.type] || foodIcons.vegetables;
+                const marker = L.marker(item.location, { icon: icon }).addTo(map);
+                marker.bindPopup(`
+                    <div style="text-align: center;">
+                        <strong>${item.name}</strong><br>
+                        <i class="fas fa-${getFoodIcon(item.type)}" style="color: #28a745; margin: 5px 0;"></i><br>
+                        ${item.description}<br>
+                        <small><i class="fas fa-user"></i> ${item.contact}</small><br>
+                        <small><i class="fas fa-calendar"></i> Expires: ${item.expiry}</small>
+                        <br><br>
+                        <button onclick="editFoodItem(${item.id})" style="background: #ffc107; border: none; padding: 5px 10px; border-radius: 3px; margin-right: 5px;">Edit</button>
+                        <button onclick="deleteFoodItem(${item.id})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px;">Delete</button>
+                    </div>
+                `);
+            });
+        }
+
+        // Mobile navigation functions
+        function showMobileSection(section) {
+            // Update mobile nav buttons
+            document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.mobile-nav-btn').classList.add('active');
+
+            // Show/hide sections based on screen size
+            if (window.innerWidth <= 768) {
+                const mapContainer = document.querySelector('.map-container');
+                const foodListings = document.querySelector('.food-listings');
+                const feedbackSection = document.querySelector('.feedback-section');
+
+                // Hide all sections first
+                mapContainer.style.display = 'none';
+                foodListings.style.display = 'none';
+                feedbackSection.style.display = 'none';
+
+                // Show selected section
+                switch(section) {
+                    case 'map':
+                        mapContainer.style.display = 'block';
+                        break;
+                    case 'food':
+                        foodListings.style.display = 'block';
+                        break;
+                    case 'feedback':
+                        feedbackSection.style.display = 'block';
+                        break;
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
